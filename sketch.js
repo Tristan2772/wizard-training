@@ -10,6 +10,12 @@ const VIDEO_CANVAS_HEIGHT = 480;
 const PINCH_DISTANCE = 30;
 const PALM_DISTANCE = 150;
 
+// Image comparing model
+const IMAGE_MODEL_URL = "https://teachablemachine.withgoogle.com/models/UW3LaSUjo/"
+let label;
+
+
+
 // Toggle detection when mouse is pressed
 function mousePressed() {
   toggleDetection();
@@ -30,6 +36,9 @@ function toggleDetection() {
 
 function preload() {
   handPose = ml5.handPose();
+  spellClassifier = ml5.imageClassifier(IMAGE_MODEL_URL + "model.json", {
+    flipped: true,
+  });
 }
 
 function setup() {
@@ -43,12 +52,22 @@ function setup() {
   video = createCapture(VIDEO, {flipped: true});
   video.size(VIDEO_CANVAS_WIDTH, VIDEO_CANVAS_HEIGHT);
   video.hide();
+
+  // Expose only the drawing layer for external canvas comparison.
+  window.getHandDrawingCanvas = () => drawing.canvas;
+  spellClassifier.classifyStart(drawing, gotResult);
 }
 
 // Callback function for when handPose outputs data
 function gotHands(results) {
   // Save the output to the hands variable
   hands = results;
+}
+
+// A function to run when we get the results and any errors
+function gotResult(results) {
+  // Update the label variable which is displayed on the canvas
+  label = results[0].label;
 }
 
 // Finally, draw video and hand points to the canvas
@@ -80,7 +99,7 @@ function draw() {
       let pinchY = (index.y + thumb.y) * 0.5;
       let pinchDist = dist(index.x, index.y, thumb.x, thumb.y)
       if (pinchDist < PINCH_DISTANCE) {
-        drawing.stroke(255, 0, 255);
+        drawing.stroke(255, 255, 255);
         drawing.strokeWeight(8)
         if (prevX === 0) {
           prevX = pinchX
@@ -90,14 +109,26 @@ function draw() {
         }
         drawing.line(prevX, prevY, pinchX, pinchY);
       } else {
-        if (wristDist > PALM_DISTANCE) {
-          console.log(drawing)
-        }
+        // if (wristDist > PALM_DISTANCE) {
+        // castSpell()
+        // }
       }
       prevX = pinchX;
       prevY = pinchY;
     }
   }
   image(drawing, 0, 0);
+  fill(255);
+  textSize(16);
+  textAlign(CENTER);
+  text(label, width / 2, height - 4);
 }
 
+
+// TO DO
+// draw spells also onto white canvas with black ink for better results
+// do not set label if confidence is less than 50%
+// open palm to cast spell
+// set drawing and comparing in a worker so main thread is not blocked
+// put fake dummy on right side to spar with
+// each cast spell lowers magic bar and opponents health bar

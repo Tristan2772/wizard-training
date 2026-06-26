@@ -2,10 +2,11 @@ html, body {
   margin: 0;
   padding: 0;
 }
+#video-container {
+  display: flex;
+}
 canvas {
   display: block;
   width: 100%;
-}
-#defaultCanvas0 {
   border: 5px solid black;
 }
