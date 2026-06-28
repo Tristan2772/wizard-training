@@ -5,6 +5,7 @@ let isDetecting = false;
 let drawing;
 let prevX = 0;
 let prevY = 0;
+let isCastingSpell = false;
 const VIDEO_CANVAS_WIDTH = 640;
 const VIDEO_CANVAS_HEIGHT = 480;
 const PINCH_DISTANCE = 30;
@@ -54,8 +55,8 @@ function setup() {
   video.hide();
 
   // Expose only the drawing layer for external canvas comparison.
-  window.getHandDrawingCanvas = () => drawing.canvas;
-  spellClassifier.classifyStart(drawing, gotResult);
+  // window.getHandDrawingCanvas = () => drawing.canvas;
+  // spellClassifier.classifyStart(drawing, gotResult);
 }
 
 // Callback function for when handPose outputs data
@@ -70,6 +71,18 @@ function gotResult(results) {
   label = results[0].label;
 }
 
+async function castSpell() {
+  console.log("spell casted");
+  toggleDetection();
+  
+  try {
+    const results = await spellClassifier.classify(drawing);
+    gotResult(results);
+  } finally {
+    isCastingSpell = false;
+  }
+} 
+
 // Finally, draw video and hand points to the canvas
 function draw() {
   // Draw video
@@ -83,16 +96,16 @@ function draw() {
       let thumb = hand.thumb_tip;
       let index = hand.index_finger_tip;
       let middle = hand.middle_finger_tip;
-      let ring = hand.ring_finger_tip;
-      let pinky = hand.pinky_tip;
+      // let ring = hand.ring_finger_tip;
+      // let pinky = hand.pinky_tip;
 
       // If distance between fingers and wrist are greater than threshold, send drawing
-      let wristThumbDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      let wristIndexDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      // let wristThumbDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      // let wristIndexDist = dist(wrist.x, wrist.y, middle.x, middle.y)
       let wristMidDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      let wristRingDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      let wristPinkyDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      let wristDist = ( wristThumbDist + wristIndexDist + wristMidDist + wristRingDist + wristPinkyDist) * 0.2
+      // let wristRingDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      // let wristPinkyDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      // let wristDist = ( wristThumbDist + wristIndexDist + wristMidDist + wristRingDist + wristPinkyDist) * 0.2
 
       // If distance between pinch fingers is less than threshold, then start drawing
       let pinchX = (index.x + thumb.x) * 0.5;
@@ -108,10 +121,9 @@ function draw() {
           prevY = pinchY
         }
         drawing.line(prevX, prevY, pinchX, pinchY);
-      } else {
-        // if (wristDist > PALM_DISTANCE) {
-        // castSpell()
-        // }
+      } else if (!isCastingSpell && wristMidDist > PALM_DISTANCE) {
+        isCastingSpell = true
+        castSpell()
       }
       prevX = pinchX;
       prevY = pinchY;
