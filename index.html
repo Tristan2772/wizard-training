@@ -9,13 +9,26 @@
   <title>Wizard Training 101</title>
 </head>
 <body>
+  <button id="start-battle-btn">Start Battle</button>
   <div id="video-container">
     <main>
       <!-- Canvas and video are in the main -->
     </main>
-    <img src="/images/training-dummy.png" height="480px">
+    <div id="opponent-stage">
+      <img id="opponent-image" src="/images/training-dummy.png" height="480" alt="Training dummy">
+      <div id="spell-fx" aria-hidden="true">
+        <span class="fireball-orb"></span>
+        <span class="ice-shard shard-1"></span>
+        <span class="ice-shard shard-2"></span>
+        <span class="ice-shard shard-3"></span>
+        <span class="ice-shard shard-4"></span>
+        <span class="ice-shard shard-5"></span>
+        <span class="ice-shard shard-6"></span>
+        <span class="poison-tint"></span>
+      </div>
+    </div>
   </div>
-  <div id="healthbar"></div>
+  <div id="healthbar" class="hidden"></div>
   <script src="sketch.js"></script>
 </body>
 </html>

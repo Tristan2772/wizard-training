@@ -4,12 +4,19 @@ let hands = [];
 let isDetecting = false;
 let drawing;
 let offScreenDrawing;
+let healthBarEl;
+let spellFxEl;
+let startBattleBtnEl;
+let opponentStageEl;
+let spellAnimTimeoutId;
 let confidence;
 let prevX = 0;
 let prevY = 0;
 let isCastingSpell = false;
 let hasDrawnOnCanvas = false;
+let battleActive = false;
 let opponentHealth = 100;
+const MAX_HEALTH = 100;
 const VIDEO_CANVAS_WIDTH = 640;
 const VIDEO_CANVAS_HEIGHT = 480;
 const PINCH_DISTANCE = 30;
@@ -19,27 +26,35 @@ const SPELL_DAMAGE = {
   icefall: 15,
   poisongas: 10,
 };
-
+const SPELL_ANIM_DURATION_MS = {
+  "hit-fireball": 1250,
+  "hit-icefall": 1700,
+  "hit-poisongas": 3200,
+};
 // Image comparing model
 const IMAGE_MODEL_URL = "https://teachablemachine.withgoogle.com/models/UW3LaSUjo/"
 let label;
 
-// Toggle detection when mouse is pressed
-function mousePressed() {
-  toggleDetection();
-}
-
 // Call this function to start and stop detection
 function toggleDetection() {
-  if (isDetecting) {
+  setDetection(!isDetecting);
+}
+
+function setDetection(enabled) {
+  if (enabled === isDetecting) {
+    return;
+  }
+
+  if (!enabled) {
     handPose.detectStop();
     isDetecting = false;
     prevX = 0;
     prevY = 0;
-  } else {
-    handPose.detectStart(video, gotHands);
-    isDetecting = true;
+    return;
   }
+
+  handPose.detectStart(video, gotHands);
+  isDetecting = true;
 }
 
 function preload() {
@@ -64,6 +79,18 @@ function setup() {
   video = createCapture(VIDEO, {flipped: true});
   video.size(VIDEO_CANVAS_WIDTH, VIDEO_CANVAS_HEIGHT);
   video.hide();
+
+  healthBarEl = document.getElementById("healthbar");
+  spellFxEl = document.getElementById("spell-fx");
+  startBattleBtnEl = document.getElementById("start-battle-btn");
+  opponentStageEl = document.getElementById("opponent-stage");
+
+  if (startBattleBtnEl) {
+    startBattleBtnEl.addEventListener("click", startNewFight);
+  }
+
+  updateHealthBar();
+  setBattleUI(false);
 }
 
 // Callback function for when handPose outputs data
@@ -79,7 +106,18 @@ function gotResult(results) {
   if (confidence > 0.5) {
     label = results[0].label;
     label = label.toLowerCase().replace(/\s+/g, "");
-    applySpellDamage(label);
+    const wasDefeated = applySpellDamage(label);
+    triggerSpellAnimation(label);
+
+    if (wasDefeated) {
+      const className = "hit-" + label;
+      const duration = SPELL_ANIM_DURATION_MS[className] || 1200;
+      setTimeout(() => {
+        if (battleActive && opponentHealth === 0) {
+          handleOpponentDefeated();
+        }
+      }, duration);
+    }
   } else {
     label = "error";
   }
@@ -87,7 +125,7 @@ function gotResult(results) {
 
 async function castSpell() {
   isCastingSpell = true;
-  toggleDetection();
+  setDetection(false);
 
   try {
     const results = await spellClassifier.classify(offScreenDrawing);
@@ -101,13 +139,94 @@ async function castSpell() {
     prevY = 0;
     isCastingSpell = false;
     hasDrawnOnCanvas = false;
-    toggleDetection();
+    if (battleActive && opponentHealth > 0) {
+      setDetection(true);
+    }
   }
 } 
 
 function applySpellDamage(spellName) {
   const damage = SPELL_DAMAGE[spellName] ?? 0;
   opponentHealth = max(0, opponentHealth - damage);
+  updateHealthBar();
+
+  return opponentHealth === 0;
+}
+
+function setBattleUI(isInBattle) {
+  if (startBattleBtnEl) {
+    startBattleBtnEl.classList.toggle("hidden", isInBattle);
+  }
+
+  if (opponentStageEl) {
+    opponentStageEl.classList.toggle("hidden", !isInBattle);
+  }
+}
+
+function startNewFight() {
+  if (battleActive) {
+    return;
+  }
+
+  battleActive = true;
+  opponentHealth = MAX_HEALTH;
+  healthBarEl.classList.remove("hidden");
+  label = "";
+  confidence = 0;
+  isCastingSpell = false;
+  hasDrawnOnCanvas = false;
+  hands = [];
+  drawing.clear();
+  offScreenDrawing.clear();
+  offScreenDrawing.background(255);
+  updateHealthBar();
+  setBattleUI(true);
+  setDetection(true);
+}
+
+function handleOpponentDefeated() {
+  battleActive = false;
+  isCastingSpell = false;
+  setDetection(false);
+  setBattleUI(false);
+}
+
+function updateHealthBar() {
+  if (!healthBarEl) {
+    return;
+  }
+
+  const percent = constrain((opponentHealth / MAX_HEALTH) * 100, 0, 100);
+  healthBarEl.style.width = percent + "%";
+}
+
+function triggerSpellAnimation(spellName) {
+  if (!spellFxEl) {
+    return;
+  }
+
+  const knownClasses = ["hit-fireball", "hit-icefall", "hit-poisongas"];
+  const className = "hit-" + spellName;
+
+  for (const knownClass of knownClasses) {
+    spellFxEl.classList.remove(knownClass);
+  }
+
+  // Force reflow so re-casting the same spell retriggers the animation.
+  void spellFxEl.offsetWidth;
+
+  if (knownClasses.includes(className)) {
+    spellFxEl.classList.add(className);
+
+    if (spellAnimTimeoutId) {
+      clearTimeout(spellAnimTimeoutId);
+    }
+
+    spellAnimTimeoutId = setTimeout(() => {
+      spellFxEl.classList.remove(className);
+      spellAnimTimeoutId = null;
+    }, SPELL_ANIM_DURATION_MS[className] || 1200);
+  }
 }
 
 // Finally, draw video and hand points to the canvas
@@ -124,16 +243,16 @@ function draw() {
       let thumb = hand.thumb_tip;
       let index = hand.index_finger_tip;
       let middle = hand.middle_finger_tip;
-      // let ring = hand.ring_finger_tip;
-      // let pinky = hand.pinky_tip;
+      let ring = hand.ring_finger_tip;
+      let pinky = hand.pinky_tip;
 
       // If distance between fingers and wrist are greater than threshold, send drawing
-      // let wristThumbDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      // let wristIndexDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      let wristThumbDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      let wristIndexDist = dist(wrist.x, wrist.y, middle.x, middle.y)
       let wristMidDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      // let wristRingDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      // let wristPinkyDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      // let wristDist = ( wristThumbDist + wristIndexDist + wristMidDist + wristRingDist + wristPinkyDist) * 0.2
+      let wristRingDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      let wristPinkyDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      let wristDist = ( wristThumbDist + wristIndexDist + wristMidDist + wristRingDist + wristPinkyDist) * 0.2
 
       // If distance between pinch fingers is less than threshold, then start drawing
       let pinchX = (index.x + thumb.x) * 0.5;
@@ -152,12 +271,21 @@ function draw() {
         }
         drawing.line(prevX, prevY, pinchX, pinchY);
         offScreenDrawing.line(prevX, prevY, pinchX, pinchY);
+        prevX = pinchX;
+        prevY = pinchY;
         hasDrawnOnCanvas = true;
-      } else if (!isCastingSpell && hasDrawnOnCanvas && wristMidDist > PALM_DISTANCE) {
+      } else if (!isCastingSpell && hasDrawnOnCanvas && wristDist > PALM_DISTANCE) {
+        prevX = 0;
+        prevY = 0;
         castSpell()
+      } else {
+        // Break stroke continuity whenever pinch is released.
+        prevX = 0;
+        prevY = 0;
       }
-      prevX = pinchX;
-      prevY = pinchY;
+    } else {
+      prevX = 0;
+      prevY = 0;
     }
   }
   image(drawing, 0, 0);
@@ -166,7 +294,3 @@ function draw() {
   textAlign(CENTER);
   text(label, width / 2, height - 4);
 }
-
-
-// TO DO
-// each cast spell lowers magic bar and opponents health bar
