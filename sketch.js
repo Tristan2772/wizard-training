@@ -248,11 +248,11 @@ function draw() {
       let pinky = hand.pinky_tip;
 
       // If distance between fingers and wrist are greater than threshold, send drawing
-      let wristThumbDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      let wristIndexDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      let wristThumbDist = dist(wrist.x, wrist.y, thumb.x, thumb.y)
+      let wristIndexDist = dist(wrist.x, wrist.y, index.x, index.y)
       let wristMidDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      let wristRingDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      let wristPinkyDist = dist(wrist.x, wrist.y, middle.x, middle.y)
+      let wristRingDist = dist(wrist.x, wrist.y, ring.x, ring.y)
+      let wristPinkyDist = dist(wrist.x, wrist.y, pinky.x, pinky.y)
       let wristDist = ( wristThumbDist + wristIndexDist + wristMidDist + wristRingDist + wristPinkyDist) * 0.2
 
       // If distance between pinch fingers is less than threshold, then start drawing
