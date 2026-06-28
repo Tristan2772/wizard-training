@@ -22,9 +22,9 @@ const VIDEO_CANVAS_HEIGHT = 480;
 const PINCH_DISTANCE = 30;
 const PALM_DISTANCE = 200;
 const SPELL_DAMAGE = {
-  fireball: 30,
-  icefall: 15,
-  poisongas: 10,
+  fireball: 20,
+  icefall: 12,
+  poisongas: 8,
 };
 const SPELL_ANIM_DURATION_MS = {
   "hit-fireball": 1250,
@@ -187,6 +187,7 @@ function startNewFight() {
 function handleOpponentDefeated() {
   battleActive = false;
   isCastingSpell = false;
+  label = "";
   setDetection(false);
   setBattleUI(false);
 }
