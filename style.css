@@ -4,9 +4,20 @@ html, body {
 }
 #video-container {
   display: flex;
+
+  img {
+    flex-grow: 1;
+  }
 }
 canvas {
   display: block;
   width: 100%;
   border: 5px solid black;
+}
+#healthbar {
+  margin-top: 20px;
+  width: 100%;
+  height: 24px;
+  background-color: red;
+  border-radius: 4px;
 }
