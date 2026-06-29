@@ -7,6 +7,10 @@ html, body {
   width: 100%;
   height: 60px;
   cursor: pointer;
+  background-color: red;
+  color: white;
+  font-size: 18px;
+  margin-bottom: 10px;
 }
 
 .hidden {
@@ -48,9 +52,45 @@ canvas {
 #healthbar {
   margin-top: 20px;
   width: 100%;
-  height: 24px;
-  background-color: red;
+  height: 64px;
+  position: relative;
+  background-color: #2b2b2b;
   border-radius: 4px;
+  overflow: hidden;
+}
+
+#healthbar-fill {
+  width: 100%;
+  height: 100%;
+  background-color: red;
+  transition: width 160ms linear;
+}
+
+#healthbar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+#spell-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 30px;
+
+  .spell {
+    width: 200px;
+    aspect-ratio: 1/1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 #spell-fx.hit-fireball .fireball-orb {

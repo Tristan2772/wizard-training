@@ -5,6 +5,8 @@ let isDetecting = false;
 let drawing;
 let offScreenDrawing;
 let healthBarEl;
+let healthBarFillEl;
+let healthBarLabelEl;
 let spellFxEl;
 let startBattleBtnEl;
 let opponentStageEl;
@@ -32,7 +34,7 @@ const SPELL_ANIM_DURATION_MS = {
   "hit-poisongas": 3200,
 };
 // Image comparing model
-const IMAGE_MODEL_URL = "https://teachablemachine.withgoogle.com/models/UW3LaSUjo/"
+const IMAGE_MODEL_URL = "https://teachablemachine.withgoogle.com/models/UW3LaSUjo/";
 let label;
 
 // Call this function to start and stop detection
@@ -81,6 +83,8 @@ function setup() {
   video.hide();
 
   healthBarEl = document.getElementById("healthbar");
+  healthBarFillEl = document.getElementById("healthbar-fill");
+  healthBarLabelEl = document.getElementById("healthbar-label");
   spellFxEl = document.getElementById("spell-fx");
   startBattleBtnEl = document.getElementById("start-battle-btn");
   opponentStageEl = document.getElementById("opponent-stage");
@@ -106,6 +110,11 @@ function gotResult(results) {
   if (confidence > 0.5) {
     label = results[0].label;
     label = label.toLowerCase().replace(/\s+/g, "");
+
+    if (label === "unknown") {
+      return;
+    }
+
     const wasDefeated = applySpellDamage(label);
     triggerSpellAnimation(label);
 
@@ -143,7 +152,7 @@ async function castSpell() {
       setDetection(true);
     }
   }
-} 
+}
 
 function applySpellDamage(spellName) {
   const damage = SPELL_DAMAGE[spellName] ?? 0;
@@ -188,17 +197,23 @@ function handleOpponentDefeated() {
   battleActive = false;
   isCastingSpell = false;
   label = "";
+  if (healthBarEl) {
+    healthBarEl.classList.add("hidden");
+  }
   setDetection(false);
   setBattleUI(false);
 }
 
 function updateHealthBar() {
-  if (!healthBarEl) {
+  if (!healthBarEl || !healthBarFillEl || !healthBarLabelEl) {
     return;
   }
 
   const percent = constrain((opponentHealth / MAX_HEALTH) * 100, 0, 100);
-  healthBarEl.style.width = percent + "%";
+  const roundedHealth = Math.round(opponentHealth);
+  healthBarFillEl.style.width = percent + "%";
+  healthBarLabelEl.textContent = `${roundedHealth} / ${MAX_HEALTH}`;
+  healthBarEl.setAttribute("aria-valuenow", String(roundedHealth));
 }
 
 function triggerSpellAnimation(spellName) {
@@ -235,7 +250,7 @@ function draw() {
   // Draw video
   image(video, 0, 0, width, height);
   frameRate(24);
-  
+
   // Find all the necessary hand points of first hand if isDetecting
   if (isDetecting) {
     if (hands.length > 0) {
@@ -248,27 +263,26 @@ function draw() {
       let pinky = hand.pinky_tip;
 
       // If distance between fingers and wrist are greater than threshold, send drawing
-      let wristThumbDist = dist(wrist.x, wrist.y, thumb.x, thumb.y)
-      let wristIndexDist = dist(wrist.x, wrist.y, index.x, index.y)
-      let wristMidDist = dist(wrist.x, wrist.y, middle.x, middle.y)
-      let wristRingDist = dist(wrist.x, wrist.y, ring.x, ring.y)
-      let wristPinkyDist = dist(wrist.x, wrist.y, pinky.x, pinky.y)
-      let wristDist = ( wristThumbDist + wristIndexDist + wristMidDist + wristRingDist + wristPinkyDist) * 0.2
+      let wristThumbDist = dist(wrist.x, wrist.y, thumb.x, thumb.y);
+      let wristIndexDist = dist(wrist.x, wrist.y, index.x, index.y);
+      let wristMidDist = dist(wrist.x, wrist.y, middle.x, middle.y);
+      let wristRingDist = dist(wrist.x, wrist.y, ring.x, ring.y);
+      let wristDist = (wristThumbDist + wristIndexDist + wristMidDist + wristRingDist) * 0.2;
 
       // If distance between pinch fingers is less than threshold, then start drawing
       let pinchX = (index.x + thumb.x) * 0.5;
       let pinchY = (index.y + thumb.y) * 0.5;
-      let pinchDist = dist(index.x, index.y, thumb.x, thumb.y)
+      let pinchDist = dist(index.x, index.y, thumb.x, thumb.y);
       if (pinchDist < PINCH_DISTANCE) {
         drawing.stroke(255, 255, 255);
         offScreenDrawing.stroke(0, 0, 0);
         offScreenDrawing.strokeWeight(8);
         drawing.strokeWeight(8);
         if (prevX === 0) {
-          prevX = pinchX
+          prevX = pinchX;
         }
         if (prevY === 0) {
-          prevY = pinchY
+          prevY = pinchY;
         }
         drawing.line(prevX, prevY, pinchX, pinchY);
         offScreenDrawing.line(prevX, prevY, pinchX, pinchY);
@@ -278,7 +292,7 @@ function draw() {
       } else if (!isCastingSpell && hasDrawnOnCanvas && wristDist > PALM_DISTANCE) {
         prevX = 0;
         prevY = 0;
-        castSpell()
+        castSpell();
       } else {
         // Break stroke continuity whenever pinch is released.
         prevX = 0;

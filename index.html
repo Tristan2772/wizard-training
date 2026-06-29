@@ -9,13 +9,15 @@
   <title>Wizard Training 101</title>
 </head>
 <body>
-  <button id="start-battle-btn">Start Battle</button>
+  <div class="start-menu">
+    <button id="start-battle-btn">Start Battle</button>
+  </div>
   <div id="video-container">
     <main>
       <!-- Canvas and video are in the main -->
     </main>
-    <div id="opponent-stage">
-      <img id="opponent-image" src="/images/training-dummy.png" height="480" alt="Training dummy">
+    <div id="opponent-stage" class="hidden">
+      <img id="opponent-image" src="images/training-dummy.png" height="480" alt="Training dummy">
       <div id="spell-fx" aria-hidden="true">
         <span class="fireball-orb"></span>
         <span class="ice-shard shard-1"></span>
@@ -28,7 +30,24 @@
       </div>
     </div>
   </div>
-  <div id="healthbar" class="hidden"></div>
+  <div id="healthbar" class="hidden" role="progressbar" aria-label="Opponent health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+    <div id="healthbar-fill"></div>
+    <span id="healthbar-label">100 / 100</span>
+  </div>
+  <div id="spell-container">
+    <div class="spell">
+      <img src="images/fireball-spell.png" alt="fireball" width="200px" height="200px">
+      <p>Fire Ball</p>
+    </div>
+    <div class="spell">
+      <img src="images/ice-spell.png" alt="ice fall" width="200px" height="200px">
+      <p>Ice Rain</p>
+    </div>
+    <div class="spell">
+      <img src="images/poison-spell.png" alt="poison gas" width="200px" height="200px">
+      <p>Poison Gas</p>
+    </div>
+  </div>
   <script src="sketch.js"></script>
 </body>
 </html>
